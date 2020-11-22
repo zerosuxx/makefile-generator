@@ -16,7 +16,7 @@ class Target {
     }
 }
 
-const LOCAL_STORAGE_KEY = '';
+const LOCAL_STORAGE_KEY = 'savedMakefileTemplates';
 
 new Vue({
     el: '#makefile-generator-app',
@@ -165,11 +165,15 @@ new Vue({
 			const exportData = JSON.stringify(this._getSavedMakefiles(), null, 2);
 			const blob = new Blob([exportData]);
 			const url = URL.createObjectURL(blob);
+			const currentDate = new Date().toLocaleString()
+                .replace(/. /g, '-')
+                .replace(/:/g, '-');
+			const fileName = `export-makefiles-${currentDate}.json`;
 			
 			const link = document.createElement('a');
 			
 			link.setAttribute('href', url);
-			link.setAttribute('download', 'export-makefiles.json');
+			link.setAttribute('download', fileName);
 			link.click();
 		},
         handleSelectImportSavedMakefiles(event) {
@@ -179,7 +183,7 @@ new Vue({
             reader.onload = e => {
                 const savedMakefilesJson = e.target.result.toString();
 
-                localStorage.setItem(LOCAL_STORAGE_KEY, savedMakefilesJson);
+                this._saveMakefiles(JSON.parse(savedMakefilesJson));
 
                 this.loadSavedMakefiles();
             };
@@ -201,9 +205,6 @@ new Vue({
 
             reader.onload = e => this.targets = this._parseMakefile(e.target.result);
             reader.readAsText(file);
-        },
-        triggerUploadMakefileElement() {
-            this.$refs.uploadMakefileElement.click();
         },
         copyToClipboard(element) {
             element.select();

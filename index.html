@@ -4,11 +4,16 @@
     <meta charset="utf-8"/>
     <title>Makefile Generator</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+	<style>
+		.saved-makefiles-control {
+			min-width: 600px;
+		}
+	</style>
 </head>
 <body>
 	<div id="makefile-generator-app" class="d-none">
 		<nav class="navbar navbar-light bg-light">
-			<a class="navbar-brand">Makefile Generator 0.1.2</a>
+			<a class="navbar-brand">Makefile Generator 0.2.0</a>
 			<div class="navbar-header mr-auto">
 				<button @click="addMakeTarget()" class="btn btn-primary">
 					Add new target
@@ -23,7 +28,7 @@
 					Add variable
 				</button>
 			</div>
-			<div class="form-inline my-2 my-lg-0">
+			<div class="form-inline my-2 my-lg-0 saved-makefiles-control">
 				<input type="text" class="form-control col-lg-4" v-model="savedMakefileName">
 				<button @click="saveMakefile()" class="btn btn-success">
 					S
@@ -33,11 +38,18 @@
 						{{ savedMakefile.name }}
 					</option>
 				</select>
-				<button @click="loadMakefile()" class="btn btn-warning">
+				<button @click="loadMakefile()" class="btn btn-warning" title="Load makefile">
 					L
 				</button>
-				<button @click="deleteLoadedMakefile()" class="btn btn-danger" v-if="loadedMakefile">
-					X
+				<button @click="exportSavedMakefiles()" class="btn btn-info" title="Export saved makefiles">
+					E
+				</button>
+				<input type="file" class="d-none" ref="importSavedMakefilesElement" @change="handleSelectImportSavedMakefiles">
+				<button @click="$refs.importSavedMakefilesElement.click()" class="btn btn-info" title="Import saved makefiles">
+					I
+				</button>
+				<button @click="deleteLoadedMakefile()" class="btn btn-danger" title="Delete loaded makefile" v-if="loadedMakefile">
+					D
 				</button>
 			</div>
 		</nav>
@@ -80,8 +92,8 @@
 			<code>Makefile</code>
 			<a type="button" class="btn btn-primary btn-sm" v-bind:href="makefileDownloadUrl" download="Makefile">Download</a>
 			<input type="file" class="d-none" ref="uploadMakefileElement" @change="loadMakefileFromFile">
-			<button class="btn btn-primary btn-sm" @click="triggerUploadMakefileElement()">Upload</button>
-			<button class="btn btn-primary btn-sm" @click="copyToClipboard()">Copy to clipboard</button>
+			<button class="btn btn-primary btn-sm" @click="$refs.uploadMakefileElement.click()">Upload</button>
+			<button class="btn btn-primary btn-sm" @click="copyToClipboard($refs.makeFileContentsElement)">Copy to clipboard</button>
 			<textarea class="form-control" rows="100" ref="makeFileContentsElement" v-model="makefileContents" readonly></textarea>
 		</div>
 

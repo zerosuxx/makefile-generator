@@ -16,6 +16,8 @@ class Target {
     }
 }
 
+const LOCAL_STORAGE_KEY = '';
+
 new Vue({
     el: '#makefile-generator-app',
     data: {
@@ -50,11 +52,7 @@ new Vue({
         ]
     },
     created() {
-        //this.savedMakefiles.push({ name: '- zero', targets: [new Target({target: 'zero'})] });
-
-        this._getSavedMakefileTargets().forEach(savedMakefile => {
-            this.savedMakefiles.push({ name: savedMakefile.name, targets: savedMakefile.targets });
-        })
+        this.loadSavedMakefiles();
     },
     async mounted() {
         this.$el.classList.remove('d-none');
@@ -108,6 +106,12 @@ new Vue({
         }
     },
     methods: {
+        loadSavedMakefiles() {
+            this.savedMakefiles = [];
+            this._getSavedMakefiles().forEach(savedMakefile => {
+                this.savedMakefiles.push({ name: savedMakefile.name, targets: savedMakefile.targets });
+            });
+        },
         addMakeTarget({target = '', otherTargets = '', command = '', comment = '', type = ''} = {}) {
             this.targets.push(new Target({ target, otherTargets, command, comment, type }));
         },
@@ -157,7 +161,35 @@ new Vue({
             this.savedMakefileName = this.loadedMakefile.name;
             this.targets = this.loadedMakefile.targets;
         },
+		exportSavedMakefiles() {
+			const exportData = JSON.stringify(this._getSavedMakefiles(), null, 2);
+			const blob = new Blob([exportData]);
+			const url = URL.createObjectURL(blob);
+			
+			const link = document.createElement('a');
+			
+			link.setAttribute('href', url);
+			link.setAttribute('download', 'export-makefiles.json');
+			link.click();
+		},
+        handleSelectImportSavedMakefiles(event) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = e => {
+                const savedMakefilesJson = e.target.result.toString();
+
+                localStorage.setItem(LOCAL_STORAGE_KEY, savedMakefilesJson);
+
+                this.loadSavedMakefiles();
+            };
+            reader.readAsText(file);
+        },
         deleteLoadedMakefile() {
+            if(!confirm(`Are you sure you want to delete saved makefile: '${this.loadedMakefile.name}'?`)) {
+                return;
+            }
+
             const index = this.savedMakefiles.indexOf(this.loadedMakefile);
             this.savedMakefiles.splice(index, 1);
 
@@ -173,8 +205,8 @@ new Vue({
         triggerUploadMakefileElement() {
             this.$refs.uploadMakefileElement.click();
         },
-        copyToClipboard() {
-            this.$refs.makeFileContentsElement.select();
+        copyToClipboard(element) {
+            element.select();
             document.execCommand('copy');
         },
 
@@ -211,13 +243,13 @@ new Vue({
 
             return [parts.shift(), parts.join(delimiter)];
         },
-        _getSavedMakefileTargets() {
-            const savedMakefileTemplatesJson = localStorage.getItem('savedMakefileTemplates') || '[]';
+        _getSavedMakefiles() {
+            const savedMakefileTemplatesJson = localStorage.getItem(LOCAL_STORAGE_KEY) || '[]';
 
             return JSON.parse(savedMakefileTemplatesJson);
         },
-        _saveMakefiles(makefileTargets) {
-            localStorage.setItem('savedMakefileTemplates', JSON.stringify(makefileTargets))
+        _saveMakefiles(makefiles) {
+            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(makefiles))
         },
         _arrayMove(arr, fromIndex, toIndex) {
             const element = arr[fromIndex];

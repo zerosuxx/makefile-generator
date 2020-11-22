@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <title>Makefile Generator</title>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+</head>
+<body>
+	<div id="makefile-generator-app" class="d-none">
+		<nav class="navbar navbar-light bg-light">
+			<a class="navbar-brand">Makefile Generator 0.1.2</a>
+			<div class="navbar-header mr-auto">
+				<button @click="addMakeTarget()" class="btn btn-primary">
+					Add new target
+				</button>
+				<button @click="addHelpMakeTarget()" class="btn btn-primary">
+					Add help target
+				</button>
+				<button @click="addMakeTarget({target: '.PHONY', otherTargets: 'test'})" class="btn btn-primary">
+					Add .PHONY target
+				</button>
+				<button @click="addMakeTarget({target: 'var', otherTargets: 'value', type: 'variable'})" class="btn btn-primary">
+					Add variable
+				</button>
+			</div>
+			<div class="form-inline my-2 my-lg-0">
+				<input type="text" class="form-control col-lg-4" v-model="savedMakefileName">
+				<button @click="saveMakefile()" class="btn btn-success">
+					S
+				</button>
+				<select class="form-control col-lg-4" v-model="loadedMakefile">
+					<option v-for="savedMakefile in this.savedMakefiles" :key="savedMakefile.name" :value="savedMakefile">
+						{{ savedMakefile.name }}
+					</option>
+				</select>
+				<button @click="loadMakefile()" class="btn btn-warning">
+					L
+				</button>
+				<button @click="deleteLoadedMakefile()" class="btn btn-danger" v-if="loadedMakefile">
+					X
+				</button>
+			</div>
+		</nav>
+
+		<div class="text-center p-2">
+			<div class="row" v-for="(target, index) in targets">
+				<div class="col">
+					<input class="form-control" type="text" placeholder="target" v-model="target.target" :key="index">
+				</div>
+				<div class="col">
+					<input class="form-control" type="text" placeholder="other targets / variable value" v-model="target.otherTargets" :key="index">
+				</div>
+				<div class="col">
+					<textarea class="form-control" placeholder="command" v-model="target.command" :key="index">
+					</textarea>
+				</div>
+				<div class="col">
+					<input class="form-control" type="text" placeholder="comment" v-model="target.comment" :key="index">
+				</div>
+				<div class="col">
+					<select class="form-control" v-model="target.type">
+						<option value="target">target</option>
+						<option value="variable">variable</option>
+					</select>
+				</div>
+				<div class="col">
+					<button @click="moveUp(target)" class="btn btn-info">
+						Up
+					</button>
+					<button @click="moveDown(target)" class="btn btn-info">
+						Down
+					</button>
+					<button @click="remove(target)" class="btn btn-danger">
+						Remove
+					</button>
+				</div>
+			</div>
+		</div>
+		<div class="col-md-12">
+			<code>Makefile</code>
+			<a type="button" class="btn btn-primary btn-sm" v-bind:href="makefileDownloadUrl" download="Makefile">Download</a>
+			<input type="file" class="d-none" ref="uploadMakefileElement" @change="loadMakefileFromFile">
+			<button class="btn btn-primary btn-sm" @click="triggerUploadMakefileElement()">Upload</button>
+			<button class="btn btn-primary btn-sm" @click="copyToClipboard()">Copy to clipboard</button>
+			<textarea class="form-control" rows="100" ref="makeFileContentsElement" v-model="makefileContents" readonly></textarea>
+		</div>
+
+	</div>
+	<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+	<script src="js/app.js"></script>
+</body>
+</html>

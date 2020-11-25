@@ -165,13 +165,21 @@ new Vue({
 			const exportData = JSON.stringify(this._getSavedMakefiles(), null, 2);
 			const blob = new Blob([exportData]);
 			const url = URL.createObjectURL(blob);
-			const currentDate = new Date().toLocaleString()
-                .replace(/. /g, '-')
-                .replace(/:/g, '-');
+			const currentDate = new Date()
+                .toLocaleDateString("hu", {
+                    year: "numeric",
+                    month: "2-digit",
+                    day: "2-digit",
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit"
+                })
+                .replace(/. /g, '')
+                .replace(/:/g, '');
 			const fileName = `export-makefiles-${currentDate}.json`;
-			
+
 			const link = document.createElement('a');
-			
+
 			link.setAttribute('href', url);
 			link.setAttribute('download', fileName);
 			link.click();

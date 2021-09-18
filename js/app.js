@@ -219,6 +219,9 @@ new Vue({
             document.execCommand('copy');
         },
         onParse(event) {
+            if (!event.target.value) {
+                return;
+            }
             this.targets = this._parseMakefile(event.target.value);
             event.target.value = '';
         },

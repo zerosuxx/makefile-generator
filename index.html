@@ -6,14 +6,14 @@
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 	<style>
 		.saved-makefiles-control {
-			min-width: 600px;
+			min-width: 500px;
 		}
 	</style>
 </head>
 <body>
 	<div id="makefile-generator-app" class="d-none">
 		<nav class="navbar navbar-light bg-light">
-			<a class="navbar-brand">Makefile Generator 0.2.2</a>
+			<a class="navbar-brand">Makefile Generator 0.3.1</a>
 			<div class="navbar-header mr-auto">
 				<button @click="addMakeTarget()" class="btn btn-primary">
 					Add new target
@@ -94,6 +94,7 @@
 			<input type="file" class="d-none" ref="uploadMakefileElement" @change="loadMakefileFromFile">
 			<button class="btn btn-primary btn-sm" @click="$refs.uploadMakefileElement.click()">Upload</button>
 			<button class="btn btn-primary btn-sm" @click="copyToClipboard($refs.makeFileContentsElement)">Copy to clipboard</button>
+			<textarea class="form-control" style="height: 40px" @blur="onParse"></textarea>
 			<textarea class="form-control" rows="100" ref="makeFileContentsElement" v-model="makefileContents" readonly></textarea>
 		</div>
 

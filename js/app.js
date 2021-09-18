@@ -218,6 +218,10 @@ new Vue({
             element.select();
             document.execCommand('copy');
         },
+        onParse(event) {
+            this.targets = this._parseMakefile(event.target.value);
+            event.target.value = '';
+        },
 
         _parseMakefile(contents) {
             const targets = [];

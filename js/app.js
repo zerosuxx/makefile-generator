@@ -1,10 +1,11 @@
-class Target {
-    constructor({target, otherTargets, command, comment, type} = {}) {
-       this.target = target || '';
-       this.otherTargets = otherTargets || '';
-       this.command = command || '';
-       this.comment = comment || '';
-       this.type = type || 'target';
+class Entry {
+    constructor({ target, otherTargets, codeBlock, command, comment, type } = {}) {
+        this.target = target || '';
+        this.otherTargets = otherTargets || '';
+        this.codeBlock = codeBlock || '';
+        this.command = command || '';
+        this.comment = comment || '';
+        this.type = type || 'target';
     }
 
     appendCommand(command, separator) {
@@ -16,15 +17,26 @@ class Target {
     }
 }
 
-const LOCAL_STORAGE_KEY = 'savedMakefileTemplates';
+const SAVED_MAKE_FILE_TEMPLATES_KEY = 'savedMakefileTemplates';
+const PERSISTENT_STORAGE_KEY = 'persistentStorageApiKey';
+const NAMES_KEY = '__names';
+
+const TYPE_TARGET = 'target';
+const TYPE_VARIABLE = 'variable';
+const TYPE_CODE_BLOCK = 'code_block';
 
 new Vue({
     el: '#makefile-generator-app',
     data: {
+        types: {
+            TYPE_TARGET,
+            TYPE_VARIABLE,
+            TYPE_CODE_BLOCK
+        },
         config: {
             targetSeparator: ':',
             variableSeparator: '=',
-            commentSeparator: '##'
+            commentSeparator: '##',
         },
         targetTemplates: {
             help: [
@@ -47,8 +59,8 @@ new Vue({
         savedMakefiles: [],
         loadedMakefile: null,
         savedMakefileName: '',
-        targets: [
-            new Target()
+        entries: [
+            new Entry()
         ]
     },
     created() {
@@ -63,42 +75,42 @@ new Vue({
         },
         makefileContents() {
             let contents = '';
-            const filteredTargets = this.targets.filter(target => target.target !== '');
-            const variableTargets = filteredTargets.filter(target => target.type === 'variable');
-
-            for (const target of variableTargets) {
-                contents += `${target.target}${this.config.variableSeparator}${target.otherTargets}`;
-                contents += "\n";
-            }
-
-            if (variableTargets.length > 0) {
-                contents += "\n";
-            }
-
-            const targets = filteredTargets.filter(target => target.type === 'target');
-            for (const target of targets) {
+            for (const entry of this.entries) {
                 let otherTargetsPrefix = ' ';
 
-                contents += `${target.target}${this.config.targetSeparator}`;
+                if (entry.type === TYPE_VARIABLE) {
+                    if (entry.target !== '') {
+                        contents += entry.target;
+                        contents += this.config.variableSeparator;
+                        contents += entry.otherTargets;
+                    }
+                } else if (entry.type === TYPE_CODE_BLOCK) {
+                    contents += `${entry.codeBlock}`;
+                } else if (entry.target !== '') {
+                    contents += `${entry.target}${this.config.targetSeparator}`;
 
-                if (target.otherTargets !== '') {
-                    contents += `${otherTargetsPrefix}${target.otherTargets}`;
+                    if (entry.otherTargets !== '') {
+                        contents += `${otherTargetsPrefix}${entry.otherTargets}`;
+                    }
                 }
 
-                if (target.comment !== '') {
-                    contents += ` ${this.config.commentSeparator} ${target.comment}`;
+                if (entry.comment !== '') {
+                    contents += ` ${this.config.commentSeparator} ${entry.comment}`;
                 }
 
-                if (target.command !== '') {
-                    target.command
+                if (entry.command !== '') {
+                    entry.command
                         .split("\n")
-                        .filter(content => content !== '')
+                        .filter(command => command !== '')
                         .forEach(command => {
-                            contents += `\n\t${command}`;
+                            contents += "\n";
+                            if (!this._checkIsCommand(command)) {
+                                contents += "\t";
+                            }
+                            contents += command;
                         });
                 }
 
-                contents += `\n`;
                 contents += `\n`;
             }
 
@@ -109,81 +121,108 @@ new Vue({
         loadSavedMakefiles() {
             this.savedMakefiles = [];
             this._getSavedMakefiles().forEach(savedMakefile => {
-                this.savedMakefiles.push({ name: savedMakefile.name, targets: savedMakefile.targets });
+                this.savedMakefiles.push({
+                    name: savedMakefile.name,
+                    entries: savedMakefile.entries || savedMakefile.targets || []
+                });
             });
         },
-        addMakeTarget({target = '', otherTargets = '', command = '', comment = '', type = ''} = {}) {
-            this.targets.push(new Target({ target, otherTargets, command, comment, type }));
+        addEntry({ target = '', otherTargets = '', command = '', comment = '', type = '' } = {}) {
+            this.entries.push(new Entry({ target, otherTargets, command, comment, type }));
         },
         addMakeTargetFromTemplate(templateName) {
             const target = templateName;
             const { otherTargets, command, comment, type } = this.targetTemplates[target];
-            this.targets.push(new Target({ target, otherTargets, command, comment, type }));
+            this.entries.push(new Entry({ target, otherTargets, command, comment, type }));
         },
-        addHelpMakeTarget() {
+        addHelpTarget() {
             const target = 'help';
             const [
                 { target: defaultTarget, otherTargets: defaultOtherTargets },
                 { command, comment }
             ] = this.targetTemplates[target];
 
-            this.targets.unshift(
-                new Target({ target: defaultTarget, otherTargets: defaultOtherTargets }),
-                new Target({ target, command, comment })
+            this.entries.unshift(
+                new Entry({ target: defaultTarget, otherTargets: defaultOtherTargets }),
+                new Entry({ target, command, comment })
             );
         },
         moveUp(target) {
-            const index = this.targets.indexOf(target);
+            const index = this.entries.indexOf(target);
 
-            this._arrayMove(this.targets, index, index-1);
+            this._arrayMove(this.entries, index, index - 1);
         },
         moveDown(target) {
-            const index = this.targets.indexOf(target);
+            const index = this.entries.indexOf(target);
 
-            this._arrayMove(this.targets, index, index+1);
+            this._arrayMove(this.entries, index, index + 1);
         },
         remove(target) {
-            const index = this.targets.indexOf(target);
+            const index = this.entries.indexOf(target);
 
-            this.targets.splice(index, 1);
+            this.entries.splice(index, 1);
         },
         saveMakefile() {
             const savedMakefile = this.savedMakefiles.find(savedMakefile => savedMakefile.name === this.savedMakefileName);
-            if (!savedMakefile) {
-                this.savedMakefiles.push({ name: this.savedMakefileName, targets: this.targets });
+            if (savedMakefile) {
+                savedMakefile.targets = this.entries;
             } else {
-                savedMakefile.targets = this.targets;
+                this.savedMakefiles.push({ name: this.savedMakefileName, targets: this.entries });
             }
 
             this._saveMakefiles(this.savedMakefiles);
         },
         loadMakefile() {
             this.savedMakefileName = this.loadedMakefile.name;
-            this.targets = this.loadedMakefile.targets;
+            this.entries = this.loadedMakefile.entries;
         },
-		exportSavedMakefiles() {
-			const exportData = JSON.stringify(this._getSavedMakefiles(), null, 2);
-			const blob = new Blob([exportData]);
-			const url = URL.createObjectURL(blob);
-			const currentDate = new Date()
-                .toLocaleDateString("hu", {
-                    year: "numeric",
-                    month: "2-digit",
-                    day: "2-digit",
-                    hour: "2-digit",
-                    minute: "2-digit",
-                    second: "2-digit"
+        exportSavedMakefiles() {
+            const exportData = JSON.stringify(this._getSavedMakefiles(), null, 2);
+            const blob = new Blob([exportData]);
+            const url = URL.createObjectURL(blob);
+            const currentDate = new Date()
+                .toLocaleDateString('hu', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit'
                 })
                 .replace(/. /g, '')
                 .replace(/:/g, '');
-			const fileName = `export-makefiles-${currentDate}.json`;
+            const fileName = `export-makefiles-${currentDate}.json`;
 
-			const link = document.createElement('a');
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', fileName);
+            link.click();
+        },
+        async backupSavedMakeFiles() {
+            const apiKey = this._getPersistentStorageApiKey();
+            const savedMakefiles = this._getSavedMakefiles();
 
-			link.setAttribute('href', url);
-			link.setAttribute('download', fileName);
-			link.click();
-		},
+            const names = await this._fetchFromPersistentStorage(apiKey, NAMES_KEY, '[]');
+            for (const savedMakefile of savedMakefiles) {
+                names.push(savedMakefile.name);
+                await this._saveToPersistentStorage(apiKey, savedMakefile.name, savedMakefiles);
+            }
+            await this._saveToPersistentStorage(apiKey, NAMES_KEY, names);
+        },
+        async restoreSavedMakeFiles() {
+            if (!confirm('Are you sure?')) {
+                return;
+            }
+
+            const apiKey = this._getPersistentStorageApiKey();
+            const names = await this._fetchFromPersistentStorage(apiKey, NAMES_KEY);
+            const makefiles = [];
+            for (const name in names) {
+                makefiles.push(await this._fetchFromPersistentStorage(apiKey, name));
+            }
+
+            this._saveMakefiles(makefiles);
+        },
         handleSelectImportSavedMakefiles(event) {
             const file = event.target.files[0];
             const reader = new FileReader();
@@ -198,7 +237,7 @@ new Vue({
             reader.readAsText(file);
         },
         deleteLoadedMakefile() {
-            if(!confirm(`Are you sure you want to delete saved makefile: '${this.loadedMakefile.name}'?`)) {
+            if (!confirm(`Are you sure you want to delete saved makefile: '${this.loadedMakefile.name}'?`)) {
                 return;
             }
 
@@ -211,48 +250,92 @@ new Vue({
             const file = event.target.files[0];
             const reader = new FileReader();
 
-            reader.onload = e => this.targets = this._parseMakefile(e.target.result);
+            reader.onload = e => this.entries = this._parseMakefile(e.target.result);
             reader.readAsText(file);
         },
         copyToClipboard(element) {
             element.select();
             document.execCommand('copy');
         },
+        resizeElement(el, px) {
+            el.style.height = `${px}px`;
+        },
+        handleTabKey(e) {
+            if (e.key !== 'Tab') {
+                return;
+            }
+
+            e.preventDefault();
+
+            const start = e.target.selectionStart;
+            const end = e.target.selectionEnd;
+
+            e.target.value = e.target.value.substring(0, start) + "\t" + e.target.value.substring(end);
+            e.target.selectionStart = e.target.selectionEnd = start + 1;
+        },
         onParse(event) {
             if (!event.target.value) {
                 return;
             }
-            this.targets = this._parseMakefile(event.target.value);
+
+            this.entries = this._parseMakefile(event.target.value);
             event.target.value = '';
         },
-
         _parseMakefile(contents) {
-            const targets = [];
-            contents.split("\n").filter(line => line !== '').forEach(line => {
-                if (line[0] === "\t") {
-                    targets[targets.length-1].appendCommand(line.trim(), "\n");
+            const entries = [];
+            let codeBlock = '';
+
+            for (const line of contents.split("\n")) {
+                if (this._checkIsStartCodeBlock(line)) {
+                    codeBlock += `${line}\n`;
+
+                } else if (this._checkIsEndCodeBlock(line)) {
+                    codeBlock += `${line}`;
+                    entries.push(new Entry({
+                        codeBlock,
+                        type: TYPE_CODE_BLOCK
+                    }));
+                    codeBlock = '';
+                } else if (this._checkIsCodeBlock(codeBlock)) {
+                    codeBlock += `${line}\n`;
+                } else if (this._checkIsCommand(line)) {
+                    entries[entries.length - 1].appendCommand(line, "\n");
                 } else {
-                    const [ left, comment ] = this._splitToTwoParts(line, this.config.commentSeparator);
+                    const [left, comment] = this._splitToTwoParts(line, this.config.commentSeparator);
                     const isVariable = left.match(new RegExp(this.config.variableSeparator));
-                    const [ target, otherTargets ] = this._splitToTwoParts(
+                    const [target, otherTargets] = this._splitToTwoParts(
                         left,
                         isVariable ? this.config.variableSeparator : this.config.targetSeparator
                     );
-                    let type = isVariable ? 'variable' : 'target';
+                    const type = isVariable ? 'variable' : 'target';
 
-                    targets.push(
-                        new Target({
-                            target: target,
-                            command: '',
+                    entries.push(
+                        new Entry({
+                            target,
                             comment: comment.trim(),
                             otherTargets: otherTargets.trim(),
                             type
                         })
                     );
                 }
-            });
+            }
 
-            return targets;
+            return entries;
+        },
+        _checkIsStartCodeBlock(line) {
+            return new RegExp('^(if|define)').test(line) && !this._checkIsTargetOrVariable(line);
+        },
+        _checkIsEndCodeBlock(line) {
+            return new RegExp('^(endif|endef)').test(line) && !this._checkIsTargetOrVariable(line);
+        },
+        _checkIsCodeBlock(codeBlock) {
+            return codeBlock !== '';
+        },
+        _checkIsCommand(command) {
+            return command[0] === "\t";
+        },
+        _checkIsTargetOrVariable(text) {
+            return new RegExp(`${this.config.targetSeparator}|${this.config.variableSeparator}`).test(text);
         },
         _splitToTwoParts(text, delimiter) {
             const parts = text.split(delimiter);
@@ -260,12 +343,39 @@ new Vue({
             return [parts.shift(), parts.join(delimiter)];
         },
         _getSavedMakefiles() {
-            const savedMakefileTemplatesJson = localStorage.getItem(LOCAL_STORAGE_KEY) || '[]';
+            const savedMakefileTemplatesJson = localStorage.getItem(SAVED_MAKE_FILE_TEMPLATES_KEY) || '[]';
 
             return JSON.parse(savedMakefileTemplatesJson);
         },
         _saveMakefiles(makefiles) {
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(makefiles))
+            localStorage.setItem(SAVED_MAKE_FILE_TEMPLATES_KEY, JSON.stringify(makefiles))
+        },
+        _getPersistentStorageApiKey() {
+            let apiKey = localStorage.getItem(PERSISTENT_STORAGE_KEY);
+
+            if (apiKey) {
+                return apiKey;
+            }
+
+            apiKey = prompt('Please provide the Api Key');
+            localStorage.setItem(PERSISTENT_STORAGE_KEY, apiKey);
+
+            return apiKey;
+        },
+        async _saveToPersistentStorage(apiKey, key, value) {
+            const valueInBase64 = btoa(JSON.stringify(value));
+            const response = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/UpdateValue/${apiKey}/${key}/${valueInBase64}`, {
+                method: 'POST'
+            });
+
+            return Boolean(response.json());
+        },
+        async _fetchFromPersistentStorage(apiKey, key, defaultValue = '{}') {
+            const response = await fetch(`https://keyvalue.immanuel.co/api/KeyVal/GetValue/${apiKey}/${key}`);
+            const base64 = await response.json();
+            const json = base64 ? atob(base64) : defaultValue;
+
+            return JSON.parse(json);
         },
         _arrayMove(arr, fromIndex, toIndex) {
             const element = arr[fromIndex];

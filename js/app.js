@@ -167,7 +167,7 @@ new Vue({
             if (savedMakefile) {
                 savedMakefile.targets = this.entries;
             } else {
-                this.savedMakefiles.push({ name: this.savedMakefileName, targets: this.entries });
+                this.savedMakefiles.push({ name: this.savedMakefileName, entries: this.entries });
             }
 
             this._saveMakefiles(this.savedMakefiles);

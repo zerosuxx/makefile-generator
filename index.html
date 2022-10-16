@@ -4,11 +4,24 @@
     <meta charset="utf-8"/>
     <title>Makefile Generator</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+	<style>
+		.row {
+			height: 65px;
+		}
+
+		.row.empty {
+			opacity: 0.5;
+		}
+
+		.row:hover, .row:hover input, .row:hover textarea, .row:hover select {
+			background-color: cornsilk;
+		}
+	</style>
 </head>
 <body>
 	<div id="makefile-generator-app" class="d-none">
 		<nav class="navbar navbar-light bg-light">
-			<a class="navbar-brand">Makefile Generator 0.4.1</a>
+			<a class="navbar-brand">Makefile Generator 0.4.2</a>
 			<div class="navbar-header mr-auto">
 				<button @click="addEntry()" class="btn btn-primary">
 					Add entry
@@ -25,7 +38,7 @@
 			</div>
 			<div class="form-inline mr-0 my-2 my-lg-0 saved-makefiles-control">
 				<input type="text" class="form-control col-lg-3" v-model="savedMakefileName">
-				<button @click="saveMakefile()" class="btn btn-success">
+				<button @click="saveMakefile()" class="btn btn-success" title="Save makefile">
 					S
 				</button>
 				<select class="form-control col-lg-3" v-model="loadedMakefile">
@@ -56,7 +69,7 @@
 		</nav>
 
 		<div class="text-center p-2">
-			<div class="row" v-for="(entry, index) in entries">
+			<div class="row" v-for="(entry, index) in entries" :class="{empty: entry.type === types.TYPE_TARGET && entry.target === ''}">
 				<template v-if="entry.type === types.TYPE_CODE_BLOCK">
 					<div class="col-8">
 						<textarea class="form-control" placeholder="code block" v-model="entry.codeBlock" :key="index" @keydown="handleTabKey"></textarea>

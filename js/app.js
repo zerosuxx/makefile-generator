@@ -165,7 +165,7 @@ new Vue({
         saveMakefile() {
             const savedMakefile = this.savedMakefiles.find(savedMakefile => savedMakefile.name === this.savedMakefileName);
             if (savedMakefile) {
-                savedMakefile.targets = this.entries;
+                savedMakefile.entries = this.entries;
             } else {
                 this.savedMakefiles.push({ name: this.savedMakefileName, entries: this.entries });
             }

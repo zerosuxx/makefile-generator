@@ -1,0 +1,45 @@
+### docker (dc) + .env
+dc=docker-compose
+dc_command:=$(shell command -v ${dc} 2> /dev/null)
+
+ifndef dc_command
+    dc=docker compose
+endif
+
+docker_run=$(dc) run --rm
+
+default: help
+
+help: ## Show this help
+	@echo "Targets:"
+	@fgrep -h "##" $(MAKEFILE_LIST) | grep ":" | fgrep -v fgrep | sed -e 's/\\$$//' | sed -e 's/\(.*\):.*##[ \t]*/    \1 ## /' | sort | column -t -s '##'
+	@echo
+
+env: ## Create .env file
+	cp .env.example .env
+
+build: ## Build docker image
+	$(dc) build --no-cache
+
+up: ## Build and start containers
+	$(dc) up --build
+
+down: ## Stop containers and remove them
+	$(dc) down
+
+start: ## Start existing containers
+	$(dc) start
+
+stop: ## Stop containers
+	$(dc) stop
+
+restart: down up ## Restart containers
+
+sh: ## Run shell in new container
+	$(docker_run) app sh
+
+ssh: ## Run shell in running container
+	$(dc) exec app sh
+
+logs: ## Show logs
+	$(dc) logs -f app

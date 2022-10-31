@@ -17,6 +17,13 @@ class Entry {
     }
 }
 
+class MakefileEntry {
+    constructor(name, contents = '') {
+        this.name = name;
+        this.contents = contents;
+    }
+}
+
 const SAVED_MAKE_FILE_TEMPLATES_KEY = 'savedMakefileTemplates';
 const PERSISTENT_STORAGE_KEY = 'persistentStorageApiKey';
 const NAMES_KEY = '__names';
@@ -61,13 +68,18 @@ new Vue({
         savedMakefileName: '',
         entries: [
             new Entry()
-        ]
+        ],
+        examples: [
+            new MakefileEntry('examples')
+        ],
+        selectedExample: null
     },
     created() {
         this.loadSavedMakefiles();
     },
     async mounted() {
         this.$el.classList.remove('d-none');
+        await this.loadExamples();
     },
     computed: {
         makefileDownloadUrl() {
@@ -256,6 +268,31 @@ new Vue({
         copyToClipboard(element) {
             element.select();
             document.execCommand('copy');
+        },
+        async loadExamples() {
+            let i = 1;
+            while (true) {
+                const response = await fetch(`examples/${i}.txt`);
+                if (!response.ok) {
+                    break;
+                }
+
+                let contents = await response.text();
+                const lines = contents.split("\n");
+                const title = lines[0];
+
+                let name = String(i);
+                if (title.startsWith('###')) {
+                    name += ` - ${title.substring(3).trim()}`;
+                    contents = lines.splice(1).join("\n");
+                }
+
+                this.examples.push({name, contents});
+                i++;
+            }
+        },
+        selectExample(e) {
+            this.entries = this._parseMakefile(e.target.value);
         },
         resizeElement(el, px) {
             el.style.height = `${px}px`;

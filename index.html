@@ -5,15 +5,15 @@
     <title>Makefile Generator</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 	<style>
-		.row {
+		.entries .row {
 			height: 65px;
 		}
 
-		.row.empty {
+		.entries .row.empty {
 			opacity: 0.5;
 		}
 
-		.row:hover, .row:hover input, .row:hover textarea, .row:hover select {
+		.entries .row:hover, .entries .row:hover input, .entries .row:hover textarea, .entries .row:hover select {
 			background-color: cornsilk;
 		}
 	</style>
@@ -21,7 +21,7 @@
 <body>
 	<div id="makefile-generator-app" class="d-none">
 		<nav class="navbar navbar-light bg-light">
-			<a class="navbar-brand">Makefile Generator 0.4.2</a>
+			<a class="navbar-brand">Makefile Generator 0.5.0</a>
 			<div class="navbar-header mr-auto">
 				<button @click="addEntry()" class="btn btn-primary">
 					Add entry
@@ -68,7 +68,7 @@
 			</div>
 		</nav>
 
-		<div class="text-center p-2">
+		<div class="text-center p-2 entries">
 			<div class="row" v-for="(entry, index) in entries" :class="{empty: entry.type === types.TYPE_TARGET && entry.target === ''}">
 				<template v-if="entry.type === types.TYPE_CODE_BLOCK">
 					<div class="col-8">
@@ -114,16 +114,27 @@
 				</div>
 			</div>
 		</div>
-		<div class="col-md-12">
+		<div class="col-md-4">
 			<code>Makefile</code>
-			<a type="button" class="btn btn-primary btn-sm" v-bind:href="makefileDownloadUrl" download="Makefile">Download</a>
-			<input type="file" class="d-none" ref="uploadMakefileElement" @change="loadMakefileFromFile">
-			<button class="btn btn-primary btn-sm" @click="$refs.uploadMakefileElement.click()">Upload</button>
-			<button class="btn btn-primary btn-sm" @click="copyToClipboard($refs.makeFileContentsElement)">Copy to clipboard</button>
-			<textarea class="form-control" ref="inputMakeFileContentsElement" style="height: 40px" @click="resizeElement($refs.inputMakeFileContentsElement, 300)" @blur="onParse" @keydown="handleTabKey"></textarea>
-			<textarea class="form-control" rows="100" ref="makeFileContentsElement" v-model="makefileContents" readonly></textarea>
+			<div class="row">
+				<div class="col"><a type="button" class="btn btn-primary btn-sm" v-bind:href="makefileDownloadUrl" download="Makefile">Download</a><input type="file" class="d-none" ref="uploadMakefileElement" @change="loadMakefileFromFile"></div>
+				<div class="col"><button class="btn btn-primary btn-sm" @click="$refs.uploadMakefileElement.click()">Upload</button></div>
+				<div class="col"><button class="btn btn-primary btn-sm" @click="copyToClipboard($refs.makeFileContentsElement)">Copy to clipboard</button></div>
+				<div class="col">
+					<select class="form-control" @input="selectExample">
+						<option v-for="makeFileEntry in examples" :value="makeFileEntry.contents">{{ makeFileEntry.name }}</option>
+					</select>
+				</div>
+			</div>
 		</div>
-
+		<div class="col-md-12">
+			<div class="row">
+				<div class="col"><textarea class="form-control" ref="inputMakeFileContentsElement" style="height: 40px" @click="resizeElement($refs.inputMakeFileContentsElement, 300)" @blur="onParse" @keydown="handleTabKey"></textarea></div>
+			</div>
+			<div class="row">
+				<div class="col"><textarea class="form-control" rows="100" ref="makeFileContentsElement" v-model="makefileContents" readonly></textarea></div>
+			</div>
+		</div>
 	</div>
 	<script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
 	<script src="js/app.js"></script>

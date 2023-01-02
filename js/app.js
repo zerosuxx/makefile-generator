@@ -31,6 +31,7 @@ const NAMES_KEY = '__names';
 const TYPE_TARGET = 'target';
 const TYPE_VARIABLE = 'variable';
 const TYPE_CODE_BLOCK = 'code_block';
+const TYPE_COMMENT = 'comment';
 
 new Vue({
     el: '#makefile-generator-app',
@@ -97,7 +98,7 @@ new Vue({
                         contents += entry.otherTargets;
                     }
                 } else if (entry.type === TYPE_CODE_BLOCK) {
-                    contents += `${entry.codeBlock}`;
+                    contents += entry.codeBlock;
                 } else if (entry.target !== '') {
                     contents += `${entry.target}${this.config.targetSeparator}`;
 
@@ -106,7 +107,9 @@ new Vue({
                     }
                 }
 
-                if (entry.comment !== '') {
+                if (entry.type === TYPE_COMMENT) {
+                    contents += entry.comment;
+                } else if (entry.comment !== '') {
                     contents += ` ${this.config.commentSeparator} ${entry.comment}`;
                 }
 
@@ -329,14 +332,21 @@ new Vue({
                 } else if (this._checkIsEndCodeBlock(line)) {
                     codeBlock += `${line}`;
                     entries.push(new Entry({
-                        codeBlock,
-                        type: TYPE_CODE_BLOCK
+                        type: TYPE_CODE_BLOCK,
+                        codeBlock
                     }));
                     codeBlock = '';
                 } else if (this._checkIsCodeBlock(codeBlock)) {
                     codeBlock += `${line}\n`;
                 } else if (this._checkIsCommand(line)) {
                     entries[entries.length - 1].appendCommand(line, "\n");
+                } else if (line[0] === '#') {
+                    entries.push(
+                        new Entry({
+                            type: TYPE_COMMENT,
+                            comment: line
+                        })
+                    );
                 } else {
                     const [left, comment] = this._splitToTwoParts(line, this.config.commentSeparator);
                     const isVariable = left.match(new RegExp(this.config.variableSeparator));
@@ -344,14 +354,14 @@ new Vue({
                         left,
                         isVariable ? this.config.variableSeparator : this.config.targetSeparator
                     );
-                    const type = isVariable ? 'variable' : 'target';
+                    const type = isVariable ? TYPE_VARIABLE : TYPE_TARGET;
 
                     entries.push(
                         new Entry({
+                            type,
                             target,
                             comment: comment.trim(),
-                            otherTargets: otherTargets.trim(),
-                            type
+                            otherTargets: otherTargets.trim()
                         })
                     );
                 }

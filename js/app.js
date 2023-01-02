@@ -39,7 +39,8 @@ new Vue({
         types: {
             TYPE_TARGET,
             TYPE_VARIABLE,
-            TYPE_CODE_BLOCK
+            TYPE_CODE_BLOCK,
+            TYPE_COMMENT
         },
         config: {
             targetSeparator: ':',
